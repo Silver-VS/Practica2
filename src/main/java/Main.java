@@ -3,73 +3,88 @@ import functions.GeneticAlgorithm;
 import functions.Individual;
 import plot.Graphing;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import java.util.ArrayList;
-
+/**
+ * Clase principal para ejecutar el programa de Algoritmos Genéticos.
+ * Solicita al usuario los parámetros necesarios y ejecuta el algoritmo genético.
+ */
 public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.println("Select the function to evaluate:");
-        System.out.println("1. ABS function");
-        System.out.println("2. Square function");
-        System.out.println("3. Sine + Cosine function");
+        // Solicitar al usuario la función a evaluar
+        System.out.println("Seleccione la función a evaluar:");
+        System.out.println("1. Función ABS");
+        System.out.println("2. Función Cuadrada");
+        System.out.println("3. Función Seno + Coseno");
         int functionChoice = scanner.nextInt();
 
-        FunctionEvaluator.FunctionType functionType;
-        switch (functionChoice) {
-            case 1:
-                functionType = FunctionEvaluator.FunctionType.ABS;
-                break;
-            case 2:
-                functionType = FunctionEvaluator.FunctionType.EQUISCUADRADA;
-                break;
-            case 3:
-                functionType = FunctionEvaluator.FunctionType.RELLENO;
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid function choice");
+        FunctionEvaluator.FunctionType functionType = switch (functionChoice) {
+            case 1 -> FunctionEvaluator.FunctionType.ABS;
+            case 2 -> FunctionEvaluator.FunctionType.EQUISCUADRADA;
+            case 3 -> FunctionEvaluator.FunctionType.RELLENO;
+            default -> throw new IllegalArgumentException("Elección de función inválida");
+        };
+
+        // Solicitar al usuario la probabilidad de cruza
+        System.out.println("Ingrese la probabilidad de cruza (máximo 70%):");
+        double crossoverRate = scanner.nextDouble();
+        if (crossoverRate > 0.7) {
+            System.out.println("Probabilidad de cruza inválida. Se establecerá en 70%.");
+            crossoverRate = 0.7;
         }
 
-        System.out.println("Do you want to maximize or minimize the function?");
-        System.out.println("1. Maximize");
-        System.out.println("2. Minimize");
-        int optimizeChoice = scanner.nextInt();
+        // Solicitar al usuario la probabilidad de mutación
+        System.out.println("Ingrese la probabilidad de mutación (entre 0% y 30%):");
+        double mutationRate = scanner.nextDouble();
+        if (mutationRate > 0.3) {
+            System.out.println("Probabilidad de mutación inválida. Se establecerá en 30%.");
+            mutationRate = 0.3;
+        }
 
-        boolean maximize = optimizeChoice == 1;
+        // Solicitar al usuario el número de generaciones
+        System.out.println("Ingrese el número de generaciones a realizar:");
+        int maxGenerations = scanner.nextInt();
 
-        int populationSize = 20;
-        double crossoverRate = 0.7;
-        //max 0.7%
-        double mutationRate = 0.01;
-        //entre 0 y 30 %
-        int maxGenerations = 100;
-        //tamaño del individuo pidiendo el intervalo de ejecucion
-        //checar si son aptos para mutarse
+        // Solicitar al usuario el intervalo numérico
+        System.out.println("Ingrese el intervalo numérico mínimo:");
+        int minInterval = scanner.nextInt();
 
-        GeneticAlgorithm ga = new GeneticAlgorithm(populationSize, crossoverRate, mutationRate, maxGenerations, functionType);
+        System.out.println("Ingrese el intervalo numérico máximo:");
+        int maxInterval = scanner.nextInt();
+
+        // Calcular el tamaño del individuo en su representación binaria
+        int intervalRange = maxInterval - minInterval;
+        int individualSize = (int) Math.ceil(Math.log(intervalRange) / Math.log(2));
+
+        int populationSize = 20; // Puede ser ajustable si se desea
+
+        // Crear instancia del algoritmo genético
+        GeneticAlgorithm ga = new GeneticAlgorithm(populationSize, crossoverRate, mutationRate, maxGenerations, functionType, individualSize, minInterval, maxInterval);
 
         List<List<GeneticAlgorithm.Point>> allEvaluatedPoints = new ArrayList<>();
 
+        // Ejecutar el algoritmo genético en ciclos de generaciones
         while (true) {
-            ga.runAlgorithm(maximize, 1);
+            ga.runAlgorithm(true, 1); // Maximizar por defecto
             allEvaluatedPoints.add(new ArrayList<>(ga.getEvaluatedPoints()));
 
-            double[] functionValues = FunctionEvaluator.generateFunctionValues(functionType, 0, 15);
+            double[] functionValues = FunctionEvaluator.generateFunctionValues(functionType, minInterval, maxInterval);
 
             Graphing graphing = new Graphing();
-            graphing.plotGraph(functionValues, allEvaluatedPoints, "Function and Evaluated Points", "X", "Y");
+            graphing.plotGraph(functionValues, allEvaluatedPoints, "Función y Puntos Evaluados", "X", "Y");
 
-            System.out.println("Do you want to run another generation? (yes/no)");
+            System.out.println("¿Desea realizar otra generación? (sí/no)");
             String response = scanner.next();
-            if (!response.equalsIgnoreCase("yes")) {
+            if (!response.equalsIgnoreCase("sí")) {
                 break;
             }
         }
 
         Individual best = ga.getBestIndividual();
-        System.out.println("Best Individual: " + best.getChromosome() + " Fitness: " + best.getFitness());
+        System.out.println("Mejor Individuo: " + best.getChromosome() + " Fitness: " + best.getFitness());
     }
 }
